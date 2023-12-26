@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo List</title>
+  </head>
+  <body>
+    <div id="container">
+      <form id="todo-form">
+        <div>
+          <label for="todo">To-do: </label>
+          <input type="text" id="todo" />
+        </div>
+        <br />
+        <div>
+          <label for="description">Description: </label>
+          <input type="text" id="description" />
+        </div>
+        <br />
+        &nbsp &nbsp &nbsp &nbsp
+        <input type="submit" value="Add to list" />
+      </form>
+      <div id="todo-list">
+        <!-- Todo items will be displayed here -->
+      </div>
+      <hr />
+      <div id="completed-list">
+        <!-- Completed items will be displayed here -->
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.24.0/axios.min.js"></script>
+    <script>
+      const todoApiUrl =
+        "https://crudcrud.com/api/b125dc65068b4513b1ef039b160d3dd3/todoList";
+
+      async function displayItems() {
+        try {
+          const todoContainer = document.getElementById("todo-list");
+          const completedContainer = document.getElementById("completed-list");
+          todoContainer.innerHTML = "";
+          completedContainer.innerHTML = "";
+
+          const axiosRes = await axios.get(todoApiUrl);
+          const todoDetails = axiosRes.data;
+
+          todoDetails.forEach(todo => {
+            const todoDiv = document.createElement("div");
+            const isComplete = todo.isComplete || false;
+
+            let buttons = `<button class="done-button" data-id="${todo._id}" data-complete="${isComplete}">Done</button>
+              <button class="delete-button" data-id="${todo._id}">Delete</button>`;
+
+            todoDiv.innerHTML = `
+            <p>
+              <strong>Todo:</strong> ${todo.todo} &nbsp;&nbsp;
+              <strong>Description:</strong> ${todo.description} &nbsp;&nbsp;
+              ${
+                isComplete
+                  ? '<button class="delete-button" data-id="${todo._id}">Delete</button>'
+                  : `${buttons}`
+              }
+            </p>`;
+
+            if (isComplete) {
+              completedContainer.appendChild(todoDiv);
+            } else {
+              todoContainer.appendChild(todoDiv);
+            }
+          });
+
+          const deleteButtons = document.querySelectorAll(".delete-button");
+          deleteButtons.forEach(button => {
+            button.addEventListener("click", function () {
+              const id = button.getAttribute("data-id");
+              removeItem(id);
+            });
+          });
+
+          const doneButtons = document.querySelectorAll(".done-button");
+          doneButtons.forEach(button => {
+            button.addEventListener("click", function () {
+              const id = button.getAttribute("data-id");
+              const isComplete =
+                button.getAttribute("data-complete") === "true";
+              markAsDone(id, !isComplete);
+            });
+          });
+        } catch (err) {
+          console.log(`${err} = Error in display`);
+        }
+      }
+
+      async function markAsDone(id, isComplete) {
+        try {
+          let axiosResponse = await axios.get(`${todoApiUrl}/${id}`);
+          let data = axiosResponse.data;
+          const updatedData = {
+            todo: data.todo,
+            description: data.description,
+            isComplete: isComplete,
+          };
+          await axios.put(`${todoApiUrl}/${id}`, updatedData);
+          displayItems();
+        } catch (err) {
+          console.log(`${err} = Error marking as done`);
+        }
+      }
+
+      async function removeItem(id) {
+        try {
+          await axios.delete(`${todoApiUrl}/${id}`);
+          displayItems();
+        } catch (err) {
+          console.log(`${err} = Error removing item`);
+        }
+      }
+
+      document
+        .getElementById("todo-form")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const todoInput = document.getElementById("todo").value;
+          const descriptionInput = document.getElementById("description").value;
+
+          const todoDetails = {
+            todo: todoInput,
+            description: descriptionInput,
+            isComplete: false,
+          };
+
+          try {
+            await axios.post(todoApiUrl, todoDetails);
+            document.getElementById("todo").value = "";
+            document.getElementById("description").value = "";
+            displayItems();
+          } catch (err) {
+            console.log(`${err} = Error adding item`);
+          }
+        });
+
+      // Initial display when the page loads
+      displayItems();
+    </script>
+  </body>
+</html>
