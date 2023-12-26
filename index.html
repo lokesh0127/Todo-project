@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TO-DO List</title>
+  </head>
+  <body>
+    <div id="container">
+      <form id="Todo-form">
+        <div>
+          <label for="item">To-do : </label>
+          <input type="text" id="item" />
+        </div>
+        <br />
+        <div>
+          <label for="Description">Description : </label>
+          <input type="text" id="description" />
+        </div>
+        <br />
+        &nbsp &nbsp &nbsp &nbsp
+        <input type="submit" value="Add to list" />
+      </form>
+      <div id="To-do-list">
+        <!-- Details Display here-->
+      </div>
+      <hr />
+      <div id="To-do-completedList">
+        <!-- Details Display here-->
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script>
+      async function displayItems() {
+        try {
+          let TodoContainer = document.getElementById("To-do-list");
+          TodoContainer.innerHTML = "";
+
+          let axiosRes = await axios.get(
+            "https://crudcrud.com/api/d1e2152702fa4943b669784e7d4a2316/todolist"
+          );
+
+          let todoDetails = axiosRes.data;
+
+          todoDetails.forEach(todo => {
+            let todoDiv = document.createElement("div");
+
+            todoDiv.innerHTML = `<p>${todo.item} &nbsp  ====> &nbsp ${todo.description} &nbsp &nbsp
+                    <button class="done-button" data-index="${todo._id}"> ✅ </button> &nbsp
+                    <button class="delete-button" data-index="${todo._id}"> ❌ </button> </p>`;
+
+            TodoContainer.appendChild(todoDiv);
+          });
+
+          var deleteButtons = document.querySelectorAll(".delete-button");
+          deleteButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+              var index = button.getAttribute("data-index");
+              removeItemAtIndex(index);
+            });
+          });
+
+          var doneButtons = document.querySelectorAll(".done-button");
+          doneButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+              var index = button.getAttribute("data-index");
+              doneItemAtIndex(index);
+            });
+          });
+        } catch {
+          err => console.log(`${err} = Error in display`);
+        }
+      }
+
+      async function displayDoneTodos(index) {
+        try {
+          let dataArr = [];
+          let doneContainer = document.getElementById("To-do-completedList");
+          doneContainer.innerHTML = "";
+
+          let axiosResp = await axios.get(
+            `https://crudcrud.com/api/d1e2152702fa4943b669784e7d4a2316/todolist/${index}`
+          );
+          let doneTodoDetails = axiosResp.data;
+
+          dataArr.push(doneTodoDetails);
+
+          for (let i = 0; i < dataArr.length; i++) {
+            let todoDiv = document.createElement("div");
+
+            todoDiv.innerHTML += `<p> ${doneTodoDetails.item} &nbsp  ====>  &nbsp ${doneTodoDetails.description} </p>`;
+
+            doneContainer.appendChild(todoDiv);
+          }
+        } catch {
+          err => console.log(`${err} = Error in done todos`);
+        }
+      }
+
+      async function doneItemAtIndex(index) {
+        try {
+          displayDoneTodos(index);
+          await axios.delete(
+            `https://crudcrud.com/api/d1e2152702fa4943b669784e7d4a2316/todolist/${index}`
+          );
+
+          displayItems();
+        } catch {
+          err => console.log(err);
+        }
+      }
+
+      async function removeItemAtIndex(index) {
+        await axios.delete(
+          `https://crudcrud.com/api/d1e2152702fa4943b669784e7d4a2316/todolist/${index}`
+        );
+
+        displayItems();
+        displayDoneTodos(index);
+      }
+
+      document
+        .getElementById("Todo-form")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          let todoItem = document.getElementById("item").value;
+          let description = document.getElementById("description").value;
+
+          let todoListDetails = {
+            item: todoItem,
+            description: description,
+          };
+
+          await axios.post(
+            "https://crudcrud.com/api/d1e2152702fa4943b669784e7d4a2316/todolist",
+            todoListDetails
+          );
+
+          document.getElementById("item").value = "";
+          document.getElementById("description").value = "";
+
+          displayItems();
+          displayDoneTodos(item);
+        });
+    </script>
+  </body>
+</html>
